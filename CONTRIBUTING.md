@@ -17,7 +17,7 @@
 git clone https://github.com/<your-username>/xhs-note-checkup.git
 cd xhs-note-checkup
 npm install
-cp .env.example .env   # 填入你自己的 ANTHROPIC_API_KEY
+cp .env.example .env   # 填入你自己的 PERPLEXITY_API_KEY
 npm run dev
 ```
 
@@ -34,7 +34,7 @@ npm run dev
 
 ```
 feat: 新增雷达图维度切换
-fix: 修复 Tool Use 解析失败
+fix: 修复 structured output 解析失败
 docs: 完善 README 部署章节
 refactor: 抽取 ScoreRing 动画
 chore: 升级依赖

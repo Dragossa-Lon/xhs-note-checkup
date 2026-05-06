@@ -1,10 +1,10 @@
 import type { Express } from "express";
 import { createServer } from "node:http";
 import type { Server } from "node:http";
-import Anthropic from "@anthropic-ai/sdk";
-import { checkupRequestSchema, checkupReportSchema, type CheckupReport } from "@shared/schema";
+import OpenAI from "openai";
+import { checkupRequestSchema, checkupReportSchema } from "@shared/schema";
 
-// 工具调用的 schema（强制输出合法 JSON）
+// 维度子 schema —— Perplexity structured outputs 用的 JSON Schema
 const dimensionSchema = {
   type: "object",
   properties: {
@@ -15,44 +15,47 @@ const dimensionSchema = {
     suggestions: { type: "array", items: { type: "string" }, minItems: 2, maxItems: 4 },
   },
   required: ["name", "score", "level", "comment", "suggestions"],
+  additionalProperties: false,
 };
 
-const CHECKUP_TOOL = {
-  name: "submit_checkup_report",
-  description: "提交小红书笔记体检报告",
-  input_schema: {
-    type: "object" as const,
-    properties: {
-      totalScore: { type: "number", minimum: 0, maximum: 100 },
-      grade: { type: "string", enum: ["S", "A", "B", "C", "D"] },
-      diagnosis: { type: "string", description: "中性、鼓励性的一句话诊断" },
-      dimensions: {
-        type: "object",
-        properties: {
-          title: dimensionSchema,
-          hook: dimensionSchema,
-          structure: dimensionSchema,
-          keywords: dimensionSchema,
-          interaction: dimensionSchema,
-        },
-        required: ["title", "hook", "structure", "keywords", "interaction"],
+// 顶层报告 schema
+const REPORT_JSON_SCHEMA = {
+  type: "object",
+  properties: {
+    totalScore: { type: "number", minimum: 0, maximum: 100 },
+    grade: { type: "string", enum: ["S", "A", "B", "C", "D"] },
+    diagnosis: { type: "string", description: "中性、鼓励性的一句话诊断" },
+    dimensions: {
+      type: "object",
+      properties: {
+        title: dimensionSchema,
+        hook: dimensionSchema,
+        structure: dimensionSchema,
+        keywords: dimensionSchema,
+        interaction: dimensionSchema,
       },
-      rewrite: {
-        type: "object",
-        properties: {
-          title: { type: "string" },
-          content: { type: "string" },
-          explanation: { type: "string" },
-        },
-        required: ["title", "content", "explanation"],
-      },
+      required: ["title", "hook", "structure", "keywords", "interaction"],
+      additionalProperties: false,
     },
-    required: ["totalScore", "grade", "diagnosis", "dimensions", "rewrite"],
+    rewrite: {
+      type: "object",
+      properties: {
+        title: { type: "string" },
+        content: { type: "string" },
+        explanation: { type: "string" },
+      },
+      required: ["title", "content", "explanation"],
+      additionalProperties: false,
+    },
   },
+  required: ["totalScore", "grade", "diagnosis", "dimensions", "rewrite"],
+  additionalProperties: false,
 };
 
 const SYSTEM_PROMPT = `你是一位专业、中立的小红书内容顾问，擅长用建设性的方式帮助创作者优化笔记。
 你需要对用户提交的小红书笔记进行"体检"，从 5 个维度客观评分（0-100），并提供建议。
+
+【重要】本次任务**不需要联网搜索任何外部信息**，请完全基于用户提供的笔记内容进行分析，不要引用网络资料、不要返回引用链接。
 
 评分维度：
 1. **标题吸引力**（title）：是否有钩子、数字、痛点、好奇心、利益点；字数是否合适（小红书最佳 12-20 字）
@@ -83,82 +86,127 @@ const SYSTEM_PROMPT = `你是一位专业、中立的小红书内容顾问，擅
 - **一句话诊断（diagnosis）要中性、专业、鼓励性**。例如："内容基础良好，重点优化标题与开头钩子可显著提升曝光"，而不是"重度爆款乏力综合征"这类负面戏谐表达。
 - 改写版要真正更好，体现所有改进建议；改写思路（explanation）用平和的口吻说明做了哪些调整、为什么。
 
-请调用 submit_checkup_report 工具提交体检报告。所有字段都要填写，各维度的 name 使用中文名称：标题吸引力、开头钩子、内容结构、搜索关键词、互动属性。文本中如需引用例子，请使用【】或「」中文括号，避免使用双引号。`;
+输出严格按照 JSON Schema 返回，各维度的 name 使用中文名称：标题吸引力、开头钩子、内容结构、搜索关键词、互动属性。文本中如需引用例子，请使用【】或「」中文括号，避免使用双引号。`;
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
-  if (!process.env.ANTHROPIC_API_KEY) {
+  if (!process.env.PERPLEXITY_API_KEY) {
     console.warn(
-      "\n⚠️  ANTHROPIC_API_KEY is not set. The /api/checkup endpoint will fail.\n" +
-      "   Please copy .env.example to .env and add your API key.\n"
+      "\n⚠️  PERPLEXITY_API_KEY is not set. The /api/checkup endpoint will fail.\n" +
+        "   Please copy .env.example to .env and add your API key.\n" +
+        "   Get one at: https://www.perplexity.ai/settings/api\n"
     );
   }
 
-  const client = new Anthropic({
-    apiKey: process.env.ANTHROPIC_API_KEY,
+  // Perplexity 完全兼容 OpenAI SDK，只需把 baseURL 指向 https://api.perplexity.ai
+  const client = new OpenAI({
+    apiKey: process.env.PERPLEXITY_API_KEY,
+    baseURL: "https://api.perplexity.ai",
   });
 
-  const MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-4-5-20250929";
+  const MODEL = process.env.PERPLEXITY_MODEL || "sonar";
 
   // 健康检查
   app.get("/api/health", (_req, res) => {
     res.json({
       status: "ok",
-      hasApiKey: Boolean(process.env.ANTHROPIC_API_KEY),
+      hasApiKey: Boolean(process.env.PERPLEXITY_API_KEY),
       model: MODEL,
+      provider: "perplexity",
     });
   });
 
   app.post("/api/checkup", async (req, res) => {
     try {
-      if (!process.env.ANTHROPIC_API_KEY) {
+      if (!process.env.PERPLEXITY_API_KEY) {
         return res.status(503).json({
-          error: "服务未配置 ANTHROPIC_API_KEY，请查看 README 说明",
+          error: "服务未配置 PERPLEXITY_API_KEY，请查看 README 说明",
         });
       }
 
       const parsed = checkupRequestSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: parsed.error.issues[0]?.message || "输入无效" });
+        return res
+          .status(400)
+          .json({ error: parsed.error.issues[0]?.message || "输入无效" });
       }
 
       const { note } = parsed.data;
 
-      const message = await client.messages.create({
+      // Perplexity 的 chat.completions 端点接受 OpenAI 标准格式 +
+      // structured outputs (response_format: json_schema)
+      const completion = await client.chat.completions.create({
         model: MODEL,
-        max_tokens: 8192,
-        system: SYSTEM_PROMPT,
-        tools: [CHECKUP_TOOL],
-        tool_choice: { type: "tool", name: CHECKUP_TOOL.name },
+        max_tokens: 4096,
+        temperature: 0.4,
         messages: [
+          { role: "system", content: SYSTEM_PROMPT },
           {
             role: "user",
-            content: `请对以下小红书笔记进行体检：\n\n---\n${note}\n---\n\n请调用 submit_checkup_report 工具提交报告。`,
+            content: `请对以下小红书笔记进行体检，按 JSON Schema 输出体检报告：\n\n---\n${note}\n---`,
           },
         ],
-      });
+        // Perplexity structured outputs（OpenAI 兼容字段）
+        response_format: {
+          type: "json_schema",
+          json_schema: {
+            name: "checkup_report",
+            schema: REPORT_JSON_SCHEMA,
+          },
+        },
+      } as any);
 
-      // 提取 tool_use
-      const toolUse = message.content.find((b) => b.type === "tool_use");
-      if (!toolUse || toolUse.type !== "tool_use") {
-        console.error("No tool_use in response:", JSON.stringify(message.content).slice(0, 500));
+      const content = completion.choices?.[0]?.message?.content;
+      if (!content || typeof content !== "string") {
+        console.error("Empty completion content:", JSON.stringify(completion).slice(0, 500));
         return res.status(500).json({ error: "AI 没有返回体检结果，请重试" });
       }
 
-      // tool_use.input 已经是解析好的 JSON 对象
-      const validation = checkupReportSchema.safeParse(toolUse.input);
+      // Perplexity 在严格模式下会返回纯 JSON 字符串
+      let parsedJson: unknown;
+      try {
+        parsedJson = JSON.parse(content);
+      } catch (e) {
+        // 兜底：偶尔模型可能在 JSON 前后加了文字，提取大括号块
+        const match = content.match(/\{[\s\S]*\}/);
+        if (!match) {
+          console.error("Failed to parse JSON:", content.slice(0, 500));
+          return res.status(500).json({ error: "AI 返回格式异常，请重试" });
+        }
+        try {
+          parsedJson = JSON.parse(match[0]);
+        } catch (e2) {
+          console.error("Failed to parse extracted JSON:", match[0].slice(0, 500));
+          return res.status(500).json({ error: "AI 返回格式异常，请重试" });
+        }
+      }
+
+      const validation = checkupReportSchema.safeParse(parsedJson);
       if (!validation.success) {
         console.error("Schema validation failed:", validation.error.issues);
-        console.error("Raw input:", JSON.stringify(toolUse.input).slice(0, 1000));
+        console.error("Raw payload:", JSON.stringify(parsedJson).slice(0, 1000));
         return res.status(500).json({ error: "AI 返回结构异常，请重试" });
       }
 
       res.json(validation.data);
     } catch (error: any) {
       console.error("Checkup error:", error);
-      res.status(500).json({ error: error.message || "体检失败，请重试" });
+      // OpenAI SDK 错误形态
+      const status = error?.status || error?.response?.status;
+      const message =
+        error?.error?.message ||
+        error?.response?.data?.error?.message ||
+        error?.message ||
+        "体检失败，请重试";
+      if (status === 401) {
+        return res.status(401).json({ error: "PERPLEXITY_API_KEY 无效，请检查 .env" });
+      }
+      if (status === 429) {
+        return res.status(429).json({ error: "请求过于频繁或额度已用尽，请稍后再试" });
+      }
+      res.status(500).json({ error: message });
     }
   });
 

@@ -1,10 +1,10 @@
 # 笔记体检 Agent · XHS Note Checkup
 
-> 给小红书笔记做一次"全身体检"——基于 Anthropic Claude 的 AI 笔记诊断与改写工具。
+> 给小红书笔记做一次"全身体检"——基于 Perplexity Sonar API 的 AI 笔记诊断与改写工具。
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![Node](https://img.shields.io/badge/node-%3E%3D18-339933)](https://nodejs.org/)
-[![Powered by Claude](https://img.shields.io/badge/Powered%20by-Claude%20Sonnet%204.5-d97757)](https://www.anthropic.com/)
+[![Powered by Perplexity](https://img.shields.io/badge/Powered%20by-Perplexity%20Sonar-20808d)](https://www.perplexity.ai/)
 
 把你的小红书笔记标题与正文丢进去，AI 会从 **标题、Hook、结构、关键词、互动引导** 五个维度生成一份"体检报告"，并附上一版可直接抄走的改写示例。整体走「趣味体检风」——红十字 logo、暖粉色调、纸纹底，把 AI 评估包装成一张轻松的医院化验单。
 
@@ -33,7 +33,7 @@
 - **分享卡片** —— 一键导出 PNG，方便发到群里互相切磋
 - **客观中立的语气** —— 评价坚持「肯定 + 可改进」结构，建议用「建议 / 可以尝试 / 不妨」开头，避免负面攻击性表达
 - **示例笔记** —— 内置 3 篇不同类型的示例，零成本试用
-- **基于 Tool Use 的稳定输出** —— 通过 Anthropic Tool Use API 强约束 JSON Schema，杜绝 LLM 输出格式错误
+- **Structured Outputs 稳定输出** —— 通过 Perplexity 的 `response_format: json_schema` 强约束输出结构，再配 Zod 校验，杜绝 LLM 输出格式错误
 
 ## 快速开始
 
@@ -47,8 +47,8 @@ npm install
 
 # 3. 配置 API Key
 cp .env.example .env
-# 编辑 .env，填入你的 ANTHROPIC_API_KEY
-# 申请地址：https://console.anthropic.com/settings/keys
+# 编辑 .env，填入你的 PERPLEXITY_API_KEY
+# 申请地址：https://www.perplexity.ai/settings/api
 
 # 4. 启动开发服务器
 npm run dev
@@ -62,8 +62,8 @@ npm run dev
 
 | 变量 | 必填 | 默认值 | 说明 |
 | --- | --- | --- | --- |
-| `ANTHROPIC_API_KEY` | ✓ | — | Anthropic 控制台的 API Key |
-| `ANTHROPIC_MODEL` | | `claude-sonnet-4-5-20250929` | 使用的 Claude 模型，可换为 `claude-opus-4-5` 等 |
+| `PERPLEXITY_API_KEY` | ✓ | — | Perplexity API Key |
+| `PERPLEXITY_MODEL` | | `sonar` | Sonar 模型：`sonar` / `sonar-pro` / `sonar-reasoning-pro` / `sonar-deep-research` |
 | `PORT` | | `5000` | 服务监听端口 |
 
 详见 [.env.example](./.env.example)。
@@ -80,7 +80,7 @@ npm run dev
 | 图表 | Recharts（雷达图） |
 | 卡片导出 | html2canvas |
 | 后端 | Express 5 + Node.js |
-| AI 模型 | Anthropic Claude (Tool Use API) |
+| AI 接入 | Perplexity Sonar (OpenAI 兼容) + `openai` SDK |
 | Schema 校验 | Zod |
 | 表单 | react-hook-form + @hookform/resolvers |
 
@@ -114,7 +114,7 @@ xhs-note-checkup/
 
 ```bash
 npm run build
-ANTHROPIC_API_KEY=sk-ant-xxx NODE_ENV=production node dist/index.cjs
+PERPLEXITY_API_KEY=pplx-xxx NODE_ENV=production node dist/index.cjs
 ```
 
 默认监听 `5000` 端口，可用 Nginx / Caddy 反向代理。
@@ -139,7 +139,7 @@ CMD ["node", "dist/index.cjs"]
 
 - Build Command: `npm install && npm run build`
 - Start Command: `node dist/index.cjs`
-- 环境变量配置 `ANTHROPIC_API_KEY`
+- 环境变量配置 `PERPLEXITY_API_KEY`
 
 > 注：本项目前后端共用一个端口，无需额外的反向代理或拆分部署。
 
@@ -161,7 +161,7 @@ CMD ["node", "dist/index.cjs"]
 
 ## English
 
-**XHS Note Checkup Agent** — an AI-powered diagnosis tool for Xiaohongshu (Little Red Book) notes, built on Anthropic Claude.
+**XHS Note Checkup Agent** — an AI-powered diagnosis tool for Xiaohongshu (Little Red Book) notes, built on the Perplexity Sonar API.
 
 Paste a note's title and body, and the agent generates a "medical-checkup style" report scoring 5 dimensions — **Title, Hook, Structure, Keywords, Engagement** — plus a rewritten draft you can copy directly. The whole UI is themed as a playful health-checkup form: red-cross logo, warm pink accent, paper-grid background.
 
@@ -171,7 +171,7 @@ Paste a note's title and body, and the agent generates a "medical-checkup style"
 - AI-generated rewrite with rationale
 - One-click PNG share card via `html2canvas`
 - Constructive, neutral tone — every comment pairs an affirmation with an improvement suggestion
-- Reliable JSON output via Anthropic Tool Use API + Zod validation
+- Reliable JSON output via Perplexity structured outputs (`response_format: json_schema`) + Zod validation
 
 ### Quickstart
 
@@ -179,7 +179,7 @@ Paste a note's title and body, and the agent generates a "medical-checkup style"
 git clone https://github.com/your-username/xhs-note-checkup.git
 cd xhs-note-checkup
 npm install
-cp .env.example .env   # then add your ANTHROPIC_API_KEY
+cp .env.example .env   # then add your PERPLEXITY_API_KEY
 npm run dev
 ```
 
@@ -187,7 +187,7 @@ Open [http://localhost:5000](http://localhost:5000).
 
 ### Tech Stack
 
-React 18 · TypeScript · Vite · Tailwind CSS · shadcn/ui · Framer Motion · TanStack Query · Recharts · Express · Anthropic Claude · Zod
+React 18 · TypeScript · Vite · Tailwind CSS · shadcn/ui · Framer Motion · TanStack Query · Recharts · Express · Perplexity Sonar API · Zod
 
 ---
 

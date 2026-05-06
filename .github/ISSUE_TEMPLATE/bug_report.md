@@ -30,7 +30,7 @@ assignees: ''
 - OS: [e.g. macOS 14]
 - Node 版本: [e.g. 20.10.0]
 - 浏览器: [e.g. Chrome 120]
-- Claude 模型: [e.g. claude-sonnet-4-5-20250929]
+- Perplexity 模型: [e.g. sonar / sonar-pro]
 
 ## 笔记示例（可选）
 

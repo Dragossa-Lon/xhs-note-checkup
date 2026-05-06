@@ -1,7 +1,7 @@
 {
   "name": "xhs-note-checkup",
   "version": "0.1.0",
-  "description": "小红书笔记体检 Agent —— 基于 Anthropic Claude 的 AI 笔记诊断与改写工具 (XHS Note Checkup Agent powered by Claude)",
+  "description": "小红书笔记体检 Agent —— 基于 Perplexity Sonar API 的 AI 笔记诊断与改写工具 (XHS Note Checkup Agent powered by Perplexity)",
   "license": "MIT",
   "type": "module",
   "keywords": [
@@ -9,8 +9,8 @@
     "xhs",
     "note-checkup",
     "ai-agent",
-    "anthropic",
-    "claude",
+    "perplexity",
+    "sonar",
     "content-analysis",
     "react",
     "express",
@@ -32,7 +32,6 @@
     "check": "tsc"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.95.0",
     "@hookform/resolvers": "^3.10.0",
     "@radix-ui/react-dialog": "^1.1.7",
     "@radix-ui/react-label": "^2.1.3",
@@ -48,6 +47,7 @@
     "framer-motion": "^11.13.1",
     "html2canvas": "^1.4.1",
     "lucide-react": "^0.453.0",
+    "openai": "^4.77.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.55.0",
