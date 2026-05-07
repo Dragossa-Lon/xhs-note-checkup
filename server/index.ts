@@ -87,19 +87,28 @@ app.use((req, res, next) => {
     await setupVite(httpServer, app);
   }
 
-  // ALWAYS serve the app on the port specified in the environment variable PORT
-  // Other ports are firewalled. Default to 5000 if not specified.
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
+  // 服务同时提供 API 与前端资源。
+  // 可通过环境变量 PORT 覆盖，默认 5000。
+  // host 默认 localhost 仅本机访问；需要在 LAN/容器里暴露可设 HOST=0.0.0.0。
   const port = parseInt(process.env.PORT || "5000", 10);
-  httpServer.listen(
-    {
-      port,
-      host: "0.0.0.0",
-      reusePort: true,
-    },
-    () => {
-      log(`serving on port ${port}`);
-    },
-  );
+  const host = process.env.HOST || "localhost";
+
+  httpServer.on("error", (err: NodeJS.ErrnoException) => {
+    if (err.code === "EADDRINUSE") {
+      console.error(
+        `\n❌ 端口 ${port} 已被占用（macOS 上 AirPlay Receiver 默认占用 5000）。` +
+          `\n   解决方式：` +
+          `\n   1) 在 .env 里设置其他端口，例如 PORT=5173` +
+          `\n   2) 或临时运行：PORT=5173 npm run dev` +
+          `\n   3) 在 macOS 上也可以关闭：系统设置 → 通用 → 隔空投送接收器\n`
+      );
+    } else {
+      console.error("Server error:", err);
+    }
+    process.exit(1);
+  });
+
+  httpServer.listen(port, host, () => {
+    log(`✅ serving on http://${host}:${port}`);
+  });
 })();

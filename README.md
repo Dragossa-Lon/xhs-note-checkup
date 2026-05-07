@@ -64,7 +64,8 @@ npm run dev
 | --- | --- | --- | --- |
 | `PERPLEXITY_API_KEY` | ✓ | — | Perplexity API Key |
 | `PERPLEXITY_MODEL` | | `sonar` | Sonar 模型：`sonar` / `sonar-pro` / `sonar-reasoning-pro` / `sonar-deep-research` |
-| `PORT` | | `5000` | 服务监听端口 |
+| `PORT` | | `5000` | 服务监听端口（macOS 上 5000 可能被 AirPlay 占用，请改为 `5173` 等） |
+| `HOST` | | `localhost` | 监听地址；LAN / 容器里暴露请设为 `0.0.0.0` |
 
 详见 [.env.example](./.env.example)。
 
@@ -107,6 +108,45 @@ xhs-note-checkup/
 ├── .env.example
 └── package.json
 ```
+
+## 常见问题
+
+### `EADDRINUSE: address already in use 0.0.0.0:5000`
+
+**原因**：端口 5000 已被其它进程占用。最常见的是 **macOS 默认开启的 AirPlay Receiver**。
+
+**解决**（任选一种）：
+
+```bash
+# A. 在 .env 里改端口
+echo "PORT=5173" >> .env
+npm run dev
+
+# B. 临时指定
+PORT=5173 npm run dev
+
+# C. 在 macOS 上关闭隔空投送接收器
+# 系统设置 → 通用 → 隔空投送接收器 → 关闭
+```
+
+改了 PORT 后，请访问 `http://localhost:<你设的端口>`。
+
+### 启动后提示 `⚠️ PERPLEXITY_API_KEY is not set`
+
+没有创建 `.env` 或没填 API Key。按下面创建：
+
+```bash
+cp .env.example .env
+# 然后编辑 .env，填入从 https://www.perplexity.ai/settings/api 获取的 key
+```
+
+### 请求 `/api/checkup` 返回 401
+
+API Key 无效。检查 `.env` 里是否填对，以及 key 是否以 `pplx-` 开头。
+
+### 请求 `/api/checkup` 返回 429
+
+Perplexity API 限流或额度用尽，稍后重试或检查你的 [使用额度](https://www.perplexity.ai/settings/api)。
 
 ## 部署
 
