@@ -201,6 +201,23 @@ CMD ["node", "dist/index.cjs"]
 
 欢迎在 [Issues](https://github.com/your-username/xhs-note-checkup/issues) 中提需求。
 
+## 产品演示
+
+### 输入界面
+![输入界面](./docs/screenshots/1.png)
+
+### 体检报告
+![体检报告](./docs/screenshots/2.png)
+
+### 各项详细诊断
+![详细诊断](./docs/screenshots/3.png)
+
+### AI 改写建议
+![改写建议](./docs/screenshots/4.png)
+
+### 体检卡片导出
+![导出卡片](./docs/screenshots/5.png)
+
 ## 贡献
 
 欢迎 PR。提交前请阅读 [CONTRIBUTING.md](./CONTRIBUTING.md)。
