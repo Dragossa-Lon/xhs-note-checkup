@@ -1,4 +1,4 @@
-# 笔记体检 Agent · XHS Note Checkup
+*# 笔记体检 Agent · XHS Note Checkup
 
 > 给小红书笔记做一次"全身体检"——基于 DeepSeek API 的 AI 笔记诊断与改写工具。
 
