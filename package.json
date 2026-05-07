@@ -15,15 +15,15 @@
     "express",
     "tailwindcss"
   ],
-  "author": "Your Name <you@example.com>",
+  "author": "Dragossa-Lon",
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-username/xhs-note-checkup.git"
+    "url": "https://github.com/Dragossa-Lon/xhs-note-checkup.git"
   },
   "bugs": {
-    "url": "https://github.com/your-username/xhs-note-checkup/issues"
+    "url": "https://github.com/Dragossa-Lon/xhs-note-checkup/issues"
   },
-  "homepage": "https://github.com/your-username/xhs-note-checkup#readme",
+  "homepage": "https://github.com/Dragossa-Lon/xhs-note-checkup#readme",
   "scripts": {
     "dev": "cross-env NODE_ENV=development tsx server/index.ts",
     "build": "tsx script/build.ts",

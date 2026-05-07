@@ -39,7 +39,7 @@
 
 ```bash
 # 1. 克隆仓库
-git clone https://github.com/your-username/xhs-note-checkup.git
+git clone https://github.com/Dragossa-Lon/xhs-note-checkup.git
 cd xhs-note-checkup
 
 # 2. 安装依赖（需要 Node.js >= 18）
@@ -199,7 +199,7 @@ CMD ["node", "dist/index.cjs"]
 - [ ] 多平台支持（抖音 / 视频号文案）
 - [ ] 自定义评分权重
 
-欢迎在 [Issues](https://github.com/your-username/xhs-note-checkup/issues) 中提需求。
+欢迎在 [Issues](https://github.com/Dragossa-Lon/xhs-note-checkup/issues) 中提需求。
 
 ## 产品演示
 
@@ -241,7 +241,7 @@ Paste a note's title and body, and the agent generates a "medical-checkup style"
 ### Quickstart
 
 ```bash
-git clone https://github.com/your-username/xhs-note-checkup.git
+git clone https://github.com/Dragossa-Lon/xhs-note-checkup.git
 cd xhs-note-checkup
 npm install
 cp .env.example .env   # then add your DEEPSEEK_API_KEY

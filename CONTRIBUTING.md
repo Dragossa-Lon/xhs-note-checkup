@@ -14,7 +14,7 @@
 
 ```bash
 # Fork 后克隆你的仓库
-git clone https://github.com/<your-username>/xhs-note-checkup.git
+git clone https://github.com/<Dragossa-Lon>/xhs-note-checkup.git
 cd xhs-note-checkup
 npm install
 cp .env.example .env   # 填入你自己的 DEEPSEEK_API_KEY
