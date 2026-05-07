@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer } from "node:http";
 import type { Server } from "node:http";
 import OpenAI from "openai";
+import { HttpsProxyAgent } from "https-proxy-agent";
 import { checkupRequestSchema, checkupReportSchema } from "@shared/schema";
 
 // 维度子 schema —— Perplexity structured outputs 用的 JSON Schema
@@ -100,11 +101,24 @@ export async function registerRoutes(
     );
   }
 
+  // 如果设了 HTTPS_PROXY / HTTP_PROXY（国内开发常需要），让 OpenAI SDK 走代理
+  const proxyUrl =
+    process.env.HTTPS_PROXY ||
+    process.env.https_proxy ||
+    process.env.HTTP_PROXY ||
+    process.env.http_proxy;
+  const httpAgent = proxyUrl ? new HttpsProxyAgent(proxyUrl) : undefined;
+  if (proxyUrl) {
+    console.log(`🌐 Using HTTP proxy: ${proxyUrl}`);
+  }
+
   // Perplexity 完全兼容 OpenAI SDK，只需把 baseURL 指向 https://api.perplexity.ai
   const client = new OpenAI({
     apiKey: process.env.PERPLEXITY_API_KEY,
     baseURL: "https://api.perplexity.ai",
-  });
+    httpAgent,
+    timeout: 60_000,
+  } as any);
 
   const MODEL = process.env.PERPLEXITY_MODEL || "sonar";
 
