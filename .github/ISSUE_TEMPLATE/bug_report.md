@@ -30,7 +30,7 @@ assignees: ''
 - OS: [e.g. macOS 14]
 - Node 版本: [e.g. 20.10.0]
 - 浏览器: [e.g. Chrome 120]
-- Perplexity 模型: [e.g. sonar / sonar-pro]
+- DeepSeek 模型: [e.g. deepseek-chat / deepseek-reasoner]
 
 ## 笔记示例（可选）
 

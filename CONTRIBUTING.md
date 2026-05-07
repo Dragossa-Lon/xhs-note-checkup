@@ -17,7 +17,7 @@
 git clone https://github.com/<your-username>/xhs-note-checkup.git
 cd xhs-note-checkup
 npm install
-cp .env.example .env   # 填入你自己的 PERPLEXITY_API_KEY
+cp .env.example .env   # 填入你自己的 DEEPSEEK_API_KEY
 npm run dev
 ```
 

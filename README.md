@@ -1,10 +1,10 @@
 # 笔记体检 Agent · XHS Note Checkup
 
-> 给小红书笔记做一次"全身体检"——基于 Perplexity Sonar API 的 AI 笔记诊断与改写工具。
+> 给小红书笔记做一次"全身体检"——基于 DeepSeek API 的 AI 笔记诊断与改写工具。
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![Node](https://img.shields.io/badge/node-%3E%3D18-339933)](https://nodejs.org/)
-[![Powered by Perplexity](https://img.shields.io/badge/Powered%20by-Perplexity%20Sonar-20808d)](https://www.perplexity.ai/)
+[![Powered by DeepSeek](https://img.shields.io/badge/Powered%20by-DeepSeek-4d6bfe)](https://www.deepseek.com/)
 
 把你的小红书笔记标题与正文丢进去，AI 会从 **标题、Hook、结构、关键词、互动引导** 五个维度生成一份"体检报告"，并附上一版可直接抄走的改写示例。整体走「趣味体检风」——红十字 logo、暖粉色调、纸纹底，把 AI 评估包装成一张轻松的医院化验单。
 
@@ -33,7 +33,7 @@
 - **分享卡片** —— 一键导出 PNG，方便发到群里互相切磋
 - **客观中立的语气** —— 评价坚持「肯定 + 可改进」结构，建议用「建议 / 可以尝试 / 不妨」开头，避免负面攻击性表达
 - **示例笔记** —— 内置 3 篇不同类型的示例，零成本试用
-- **Structured Outputs 稳定输出** —— 通过 Perplexity 的 `response_format: json_schema` 强约束输出结构，再配 Zod 校验，杜绝 LLM 输出格式错误
+- **JSON 模式 + Zod 校验稳定输出** —— 通过 DeepSeek 的 `response_format: json_object` + prompt 内置 JSON 示例 + Zod schema 校验三重约束，杜绝 LLM 输出格式错误；偶发空响应自动重试
 
 ## 快速开始
 
@@ -47,8 +47,8 @@ npm install
 
 # 3. 配置 API Key
 cp .env.example .env
-# 编辑 .env，填入你的 PERPLEXITY_API_KEY
-# 申请地址：https://www.perplexity.ai/settings/api
+# 编辑 .env，填入你的 DEEPSEEK_API_KEY
+# 申请地址：https://platform.deepseek.com/api_keys（国内可直连，无需代理）
 
 # 4. 启动开发服务器
 npm run dev
@@ -62,8 +62,8 @@ npm run dev
 
 | 变量 | 必填 | 默认值 | 说明 |
 | --- | --- | --- | --- |
-| `PERPLEXITY_API_KEY` | ✓ | — | Perplexity API Key |
-| `PERPLEXITY_MODEL` | | `sonar` | Sonar 模型：`sonar` / `sonar-pro` / `sonar-reasoning-pro` / `sonar-deep-research` |
+| `DEEPSEEK_API_KEY` | ✓ | — | DeepSeek API Key（[申请](https://platform.deepseek.com/api_keys)） |
+| `DEEPSEEK_MODEL` | | `deepseek-chat` | `deepseek-chat`（默认/便宜）/ `deepseek-reasoner`（思考模式） |
 | `PORT` | | `5000` | 服务监听端口（macOS 上 5000 可能被 AirPlay 占用，请改为 `5173` 等） |
 | `HOST` | | `localhost` | 监听地址；LAN / 容器里暴露请设为 `0.0.0.0` |
 
@@ -81,7 +81,7 @@ npm run dev
 | 图表 | Recharts（雷达图） |
 | 卡片导出 | html2canvas |
 | 后端 | Express 5 + Node.js |
-| AI 接入 | Perplexity Sonar (OpenAI 兼容) + `openai` SDK |
+| AI 接入 | DeepSeek API (OpenAI 兼容) + `openai` SDK |
 | Schema 校验 | Zod |
 | 表单 | react-hook-form + @hookform/resolvers |
 
@@ -131,22 +131,30 @@ PORT=5173 npm run dev
 
 改了 PORT 后，请访问 `http://localhost:<你设的端口>`。
 
-### 启动后提示 `⚠️ PERPLEXITY_API_KEY is not set`
+### 启动后提示 `⚠️ DEEPSEEK_API_KEY is not set`
 
 没有创建 `.env` 或没填 API Key。按下面创建：
 
 ```bash
 cp .env.example .env
-# 然后编辑 .env，填入从 https://www.perplexity.ai/settings/api 获取的 key
+# 然后编辑 .env，填入从 https://platform.deepseek.com/api_keys 获取的 key
 ```
 
 ### 请求 `/api/checkup` 返回 401
 
-API Key 无效。检查 `.env` 里是否填对，以及 key 是否以 `pplx-` 开头。
+API Key 无效。检查 `.env` 里是否填对，以及 key 是否以 `sk-` 开头。
+
+### 请求 `/api/checkup` 返回 402
+
+DeepSeek 账户余额不足，请到 [platform.deepseek.com](https://platform.deepseek.com) 充值（最低 ¥10，支持微信/支付宝）。
 
 ### 请求 `/api/checkup` 返回 429
 
-Perplexity API 限流或额度用尽，稍后重试或检查你的 [使用额度](https://www.perplexity.ai/settings/api)。
+DeepSeek API 限流或额度用尽，稍后重试或检查你的[使用额度](https://platform.deepseek.com/usage)。
+
+### 提示"AI 没有返回体检结果，请重试"
+
+DeepSeek json_object 模式偶发空响应（官方文档已说明）。代码已自动重试 1 次。如果连续多次失败，可换 `DEEPSEEK_MODEL=deepseek-reasoner` 试试。
 
 ## 部署
 
@@ -154,7 +162,7 @@ Perplexity API 限流或额度用尽，稍后重试或检查你的 [使用额度
 
 ```bash
 npm run build
-PERPLEXITY_API_KEY=pplx-xxx NODE_ENV=production node dist/index.cjs
+DEEPSEEK_API_KEY=sk-xxx NODE_ENV=production node dist/index.cjs
 ```
 
 默认监听 `5000` 端口，可用 Nginx / Caddy 反向代理。
@@ -179,7 +187,7 @@ CMD ["node", "dist/index.cjs"]
 
 - Build Command: `npm install && npm run build`
 - Start Command: `node dist/index.cjs`
-- 环境变量配置 `PERPLEXITY_API_KEY`
+- 环境变量配置 `DEEPSEEK_API_KEY`
 
 > 注：本项目前后端共用一个端口，无需额外的反向代理或拆分部署。
 
@@ -201,7 +209,7 @@ CMD ["node", "dist/index.cjs"]
 
 ## English
 
-**XHS Note Checkup Agent** — an AI-powered diagnosis tool for Xiaohongshu (Little Red Book) notes, built on the Perplexity Sonar API.
+**XHS Note Checkup Agent** — an AI-powered diagnosis tool for Xiaohongshu (Little Red Book) notes, built on the DeepSeek API.
 
 Paste a note's title and body, and the agent generates a "medical-checkup style" report scoring 5 dimensions — **Title, Hook, Structure, Keywords, Engagement** — plus a rewritten draft you can copy directly. The whole UI is themed as a playful health-checkup form: red-cross logo, warm pink accent, paper-grid background.
 
@@ -211,7 +219,7 @@ Paste a note's title and body, and the agent generates a "medical-checkup style"
 - AI-generated rewrite with rationale
 - One-click PNG share card via `html2canvas`
 - Constructive, neutral tone — every comment pairs an affirmation with an improvement suggestion
-- Reliable JSON output via Perplexity structured outputs (`response_format: json_schema`) + Zod validation
+- Reliable JSON output via DeepSeek json_object mode + in-prompt schema example + Zod validation, with auto-retry on empty responses
 
 ### Quickstart
 
@@ -219,7 +227,7 @@ Paste a note's title and body, and the agent generates a "medical-checkup style"
 git clone https://github.com/your-username/xhs-note-checkup.git
 cd xhs-note-checkup
 npm install
-cp .env.example .env   # then add your PERPLEXITY_API_KEY
+cp .env.example .env   # then add your DEEPSEEK_API_KEY
 npm run dev
 ```
 
@@ -227,7 +235,7 @@ Open [http://localhost:5000](http://localhost:5000).
 
 ### Tech Stack
 
-React 18 · TypeScript · Vite · Tailwind CSS · shadcn/ui · Framer Motion · TanStack Query · Recharts · Express · Perplexity Sonar API · Zod
+React 18 · TypeScript · Vite · Tailwind CSS · shadcn/ui · Framer Motion · TanStack Query · Recharts · Express · DeepSeek API · Zod
 
 ---
 

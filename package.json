@@ -1,7 +1,7 @@
 {
   "name": "xhs-note-checkup",
   "version": "0.1.0",
-  "description": "小红书笔记体检 Agent —— 基于 Perplexity Sonar API 的 AI 笔记诊断与改写工具 (XHS Note Checkup Agent powered by Perplexity)",
+  "description": "小红书笔记体检 Agent —— 基于 DeepSeek API 的 AI 笔记诊断与改写工具 (XHS Note Checkup Agent powered by DeepSeek)",
   "license": "MIT",
   "type": "module",
   "keywords": [
@@ -9,8 +9,7 @@
     "xhs",
     "note-checkup",
     "ai-agent",
-    "perplexity",
-    "sonar",
+    "deepseek",
     "content-analysis",
     "react",
     "express",
