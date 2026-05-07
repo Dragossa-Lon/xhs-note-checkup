@@ -3,6 +3,7 @@ import { createServer } from "node:http";
 import type { Server } from "node:http";
 import OpenAI from "openai";
 import { HttpsProxyAgent } from "https-proxy-agent";
+import { SocksProxyAgent } from "socks-proxy-agent";
 import { checkupRequestSchema, checkupReportSchema } from "@shared/schema";
 
 // 维度子 schema —— Perplexity structured outputs 用的 JSON Schema
@@ -101,15 +102,28 @@ export async function registerRoutes(
     );
   }
 
-  // 如果设了 HTTPS_PROXY / HTTP_PROXY（国内开发常需要），让 OpenAI SDK 走代理
+  // 走代理：同时支持 HTTP/HTTPS 代理与 SOCKS 代理。
+  // 优先级：ALL_PROXY > HTTPS_PROXY > HTTP_PROXY。
+  // 示例：
+  //   HTTPS_PROXY=http://127.0.0.1:7890     (Clash 默认)
+  //   ALL_PROXY=socks5://127.0.0.1:1080     (Shadowsocks/SSR 默认)
   const proxyUrl =
+    process.env.ALL_PROXY ||
+    process.env.all_proxy ||
     process.env.HTTPS_PROXY ||
     process.env.https_proxy ||
     process.env.HTTP_PROXY ||
     process.env.http_proxy;
-  const httpAgent = proxyUrl ? new HttpsProxyAgent(proxyUrl) : undefined;
+
+  let httpAgent: any = undefined;
   if (proxyUrl) {
-    console.log(`🌐 Using HTTP proxy: ${proxyUrl}`);
+    if (/^socks/i.test(proxyUrl)) {
+      httpAgent = new SocksProxyAgent(proxyUrl);
+      console.log(`🌐 Using SOCKS proxy: ${proxyUrl}`);
+    } else {
+      httpAgent = new HttpsProxyAgent(proxyUrl);
+      console.log(`🌐 Using HTTP proxy: ${proxyUrl}`);
+    }
   }
 
   // Perplexity 完全兼容 OpenAI SDK，只需把 baseURL 指向 https://api.perplexity.ai
