@@ -91,7 +91,7 @@ app.use((req, res, next) => {
   // 可通过环境变量 PORT 覆盖，默认 5000。
   // host 默认 localhost 仅本机访问；需要在 LAN/容器里暴露可设 HOST=0.0.0.0。
   const port = parseInt(process.env.PORT || "5000", 10);
-  const host = process.env.HOST || "localhost";
+  const host = process.env.HOST || "0.0.0.0";
 
   httpServer.on("error", (err: NodeJS.ErrnoException) => {
     if (err.code === "EADDRINUSE") {
